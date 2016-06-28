@@ -1,55 +1,110 @@
 defmodule NasParser do
 
+	#Main
 
-	def empty?(val) do
-			String.trim(val) == ""
+	def parse(input) do
+		
+		iterateLines(String.split(input,"\n"), Map.new())
+
 	end
 
-	def trimValue(val) do
-			Regex.replace(~r/\"/, String.trim(Enum.at(val,0)), "")
-	end
 
-	def parseIfArray(val) do
-		if containsBrackets?(val) do
-			pluckValBetweenBrackets(val)
-		else
-			val
-		end
-	end
+	# Line by line interation
 
-	def iterateLines([h|t], map) do
+	defp iterateLines([h|t], map) do
 			if !empty?(h) do
 
 				[opt|val] = String.split(h,"=")
+				val = extractValue(val)
 				
-				val= parseIfArray(trimValue(val))
+				cond do
+					
+					string?(val) ->
+						val = trimQuotes(val)
+					containsBrackets?(val) ->
+						val = formatElements(pluckValBetweenBrackets(val), [])
+					stringInt?(val) ->
+						val = stringToInt(val)
+					stringFloat?(val) ->
+						val = stringToFloat(val)
+					
+				end
 				
 				map = Map.put(map, String.trim(opt), val)
 			end
 			iterateLines(t,map)
 	end
 
-	def iterateLines([], map) do
+	defp iterateLines([], map) do
 	  	map
 	end
 
-	def parse(input) do
-		
-		NasParser.iterateLines(String.split(input,"\n"), Map.new())
 
+	# String 
+	defp string?(val) do
+		(String.slice(val, 0, 1) == "\"" and String.slice(val, -1, 1) == "\"") or (String.slice(val, 0, 1) == "'" and String.slice(val, -1, 1) == "'")
+	end
+
+	defp trimQuotes(val) do
+		Regex.replace(~r/\"/, String.trim(val,"'"), "")
+	end
+
+
+	# Integer 
+	defp stringInt?(val) do
+		Regex.match?(~r/^[0-9]+$/,val)
+	end
+
+	defp stringToInt(val) do
+		elem(Integer.parse(val),0)
+	end
+
+
+	# Float 
+	defp stringFloat?(val) do
+		Regex.match?(~r/^[0-9].[0-9]+$/,val)
+	end
+
+	defp stringToFloat(val) do
+		elem(Float.parse(val),0)
+	end
+
+
+	# List
+	defp containsBrackets?(val) do
+		String.slice(val, 0, 1) == "[" and String.slice(val, -1, 1) == "]"
 	end
 
 	defp pluckValBetweenBrackets(val) do
 		String.split(String.slice(val,1, String.length(val)-2), ",")
 	end
 
-	defp containsBrackets?(val) do
-		String.slice(val, 0, 1) == "[" and String.slice(val, -1, 1) == "]"
+	defp formatElements([element|rest], newList) do
+		if !string?(element) do
+			newList = newList ++ [elem(Integer.parse(element),0)]	
+		else
+			newList = newList ++ [trimQuotes(element)]
+		end
+		
+		formatElements(rest,newList)
 	end
 
-end
+	defp formatElements([], newList) do
+		newList
+	end	
 
-# %{
-#	opcija: "slkdfjsdkf",
-#	druga_opcija: "ldskfjsdkfj"
-# }
+
+	# Other
+	defp empty?(val) do
+		String.trim(val) == ""
+	end
+
+
+	defp extractValue(val) do
+		String.trim(Enum.at(val,0))
+	end
+
+	
+
+
+end
