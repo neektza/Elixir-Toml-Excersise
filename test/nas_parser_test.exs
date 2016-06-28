@@ -31,6 +31,22 @@ defmodule NasParserTest do
 		assert(result == expected)
 	end
 
+	test "nestedArrayParsing" do
+		input = ~s(opcija="nesto"\ndruga_opcija=[["1","2","3","4"]],[5,6,7,8])
+
+		expected = %{
+			"opcija" => "nesto",
+			"druga_opcija" => ["1","2","3","4"]
+		}
+
+		result = NasParser.parse(input)
+		IO.inspect(result)
+		assert(length(Map.keys(result)) == 2)
+		assert(length(Map.values(result)) == 2)
+
+		assert(result == expected)
+	end
+
 
 	test "intParsing" do
 		input = ~s(nekalista = [1,2,3,4,5]\nbroj=7)

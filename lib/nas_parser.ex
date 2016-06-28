@@ -22,7 +22,7 @@ defmodule NasParser do
 					string?(val) ->
 						val = trimQuotes(val)
 					containsBrackets?(val) ->
-						val = formatElements(pluckValBetweenBrackets(val), [])
+						val = formatListElements(parseList(pluckValBetweenBrackets(val),[]), [])
 					stringInt?(val) ->
 						val = stringToInt(val)
 					stringFloat?(val) ->
@@ -41,67 +41,91 @@ defmodule NasParser do
 
 
 	# String 
-	defp string?(val) do
-		(String.slice(val, 0, 1) == "\"" and String.slice(val, -1, 1) == "\"") or (String.slice(val, 0, 1) == "'" and String.slice(val, -1, 1) == "'")
+	defp string?(string) do
+		(String.slice(string, 0, 1) == "\"" and String.slice(string, -1, 1) == "\"") or (String.slice(string, 0, 1) == "'" and String.slice(string, -1, 1) == "'")
 	end
 
-	defp trimQuotes(val) do
-		Regex.replace(~r/\"/, String.trim(val,"'"), "")
+	defp trimQuotes(string) do
+		Regex.replace(~r/\"/, String.trim(string,"'"), "")
 	end
 
 
 	# Integer 
-	defp stringInt?(val) do
-		Regex.match?(~r/^[0-9]+$/,val)
+	defp stringInt?(string) do
+		Regex.match?(~r/^[0-9]+$/,string)
 	end
 
-	defp stringToInt(val) do
-		elem(Integer.parse(val),0)
+	defp stringToInt(string) do
+		elem(Integer.parse(string),0)
 	end
 
 
 	# Float 
-	defp stringFloat?(val) do
-		Regex.match?(~r/^[0-9].[0-9]+$/,val)
+	defp stringFloat?(string) do
+		Regex.match?(~r/^[0-9].[0-9]+$/,string)
 	end
 
-	defp stringToFloat(val) do
-		elem(Float.parse(val),0)
+	defp stringToFloat(string) do
+		elem(Float.parse(string),0)
 	end
 
 
 	# List
-	defp containsBrackets?(val) do
-		String.slice(val, 0, 1) == "[" and String.slice(val, -1, 1) == "]"
+	defp containsBrackets?(string) do
+		String.slice(string, 0, 1) == "[" and String.slice(string, -1, 1) == "]"
 	end
 
-	defp pluckValBetweenBrackets(val) do
-		String.split(String.slice(val,1, String.length(val)-2), ",")
-	end
 
-	defp formatElements([element|rest], newList) do
-		if !string?(element) do
-			newList = newList ++ [elem(Integer.parse(element),0)]	
-		else
-			newList = newList ++ [trimQuotes(element)]
+	# DOVRŠITI SUTRA
+	defp parseList(string, memory, search, list) do
+		[char|rest] = string
+		if char != search do
+			if(search == "[") do
+				search = "]"
+			else 
+				search = "["
+				list ++ [memory]
+				memory = ""
+			end
+
+			parseList(rest, memory, search, list)
 		end
-		
-		formatElements(rest,newList)
 	end
 
-	defp formatElements([], newList) do
+	defp pluckValBetweenBrackets(string) do
+		String.slice(string,1, String.length(string)-2)
+	end
+
+	defp formatListElements([element|rest], newList) do
+
+		cond do
+			string?(element) ->
+				newList = newList ++ [trimQuotes(element)]
+			containsBrackets?(element) ->
+				newList = newList ++ [formatListElements(parseList(pluckValBetweenBrackets(element),[]), [])]
+			stringInt?(element)->
+				newList = newList ++ [stringToInt(element)]
+			stringFloat?(element) ->
+				newList = newList ++ [stringToFloat(element)]
+		end
+
+		
+		formatListElements(rest,newList)
+	end
+
+	defp formatListElements([], newList) do
 		newList
 	end	
 
 
 	# Other
-	defp empty?(val) do
-		String.trim(val) == ""
+	defp empty?(string) do
+		String.trim(string) == ""
 	end
 
 
-	defp extractValue(val) do
-		String.trim(Enum.at(val,0))
+	defp extractValue(string) do
+		String.trim(Enum.at(string,0))
 	end
 
 	
