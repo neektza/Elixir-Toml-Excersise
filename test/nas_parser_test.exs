@@ -32,11 +32,11 @@ defmodule NasParserTest do
 	end
 
 	test "nestedArrayParsing" do
-		input = ~s(opcija="nesto"\ndruga_opcija=[["1","2","3","4"]],[5,6,7,8])
+		input = ~s(opcija="nesto"\ndruga_opcija=[["1","2","3","4"],[5,6,[6.4,6.5,[6.6]],7,8]])
 
 		expected = %{
 			"opcija" => "nesto",
-			"druga_opcija" => ["1","2","3","4"]
+			"druga_opcija" => [["1","2","3","4"],[5,6,[6.4,6.5,[6.6]],7,8]]
 		}
 
 		result = NasParser.parse(input)

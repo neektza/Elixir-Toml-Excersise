@@ -22,7 +22,7 @@ defmodule NasParser do
 					string?(val) ->
 						val = trimQuotes(val)
 					containsBrackets?(val) ->
-						val = formatListElements(parseList(pluckValBetweenBrackets(val),[]), [])
+						val = formatListElements(parseList(String.graphemes(pluckValBetweenBrackets(val)), "", "[", 0), [])
 					stringInt?(val) ->
 						val = stringToInt(val)
 					stringFloat?(val) ->
@@ -76,20 +76,37 @@ defmodule NasParser do
 	end
 
 
-	# DOVRŠITI SUTRA
-	defp parseList(string, memory, search, list) do
-		[char|rest] = string
-		if char != search do
-			if(search == "[") do
-				search = "]"
-			else 
-				search = "["
-				list ++ [memory]
-				memory = ""
-			end
+	defp parseList([char | rest], memory, search, lvl) do
 
-			parseList(rest, memory, search, list)
+		cond do
+	
+			char == "[" and search == "[" ->
+				memory = memory <> char
+				search = "]"
+				lvl = lvl + 1
+			char == "[" and search == "]" ->
+				lvl = lvl + 1
+				memory = memory <> char
+			char == "]" and search == "]" and lvl > 1 ->
+				lvl = lvl - 1
+				memory = memory <> char
+			char == "]" and search == "]" and lvl == 1 ->
+				memory = memory <> char
+				search = "["
+				lvl = lvl - 1
+			char == "," and lvl == 0 ->
+				memory = memory <> "###"
+			true ->
+				memory = memory <> char
 		end
+		
+		
+		parseList(rest, memory, search, lvl)
+	end
+
+	
+	defp parseList([], memory, search,lvl) do
+		[] ++ String.split(memory,"###")
 	end
 
 	defp pluckValBetweenBrackets(string) do
@@ -102,7 +119,7 @@ defmodule NasParser do
 			string?(element) ->
 				newList = newList ++ [trimQuotes(element)]
 			containsBrackets?(element) ->
-				newList = newList ++ [formatListElements(parseList(pluckValBetweenBrackets(element),[]), [])]
+				newList = newList ++ [formatListElements(parseList(String.graphemes(pluckValBetweenBrackets(element)),"","[", 0), [])]
 			stringInt?(element)->
 				newList = newList ++ [stringToInt(element)]
 			stringFloat?(element) ->
@@ -127,8 +144,6 @@ defmodule NasParser do
 	defp extractValue(string) do
 		String.trim(Enum.at(string,0))
 	end
-
-	
 
 
 end
